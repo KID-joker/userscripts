@@ -6,15 +6,44 @@
 // @author       KID-joker
 // @match        https://search.bilibili.com/*
 // @icon         https://www.bilibili.com/favicon.ico?v=1
-// @require      https://raw.githubusercontent.com/KID-joker/userscript/main/lib/lodash.isequal%404.5.0.js
 // @require      https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js
 // @grant        GM_log
+// @grant        GM_addStyle
 // @grant        unsafeWindow
 // @run-at       document-start
 // ==/UserScript==
 
 (function() {
-    GM_log('hello', unsafeWindow);
+    // 设置样式
+    let css = `
+        @media (max-width: 1099.9px) {
+            #i_cecream .video-list-item {
+                display:block!important;
+            }
+        }
+        @media (max-width: 1439.9px) {
+            #i_cecream .video-list-item {
+                display:block!important;
+            }
+        }
+        @media (max-width: 1699.9px) {
+            #i_cecream .video-list-item {
+                display:block!important;
+            }
+        }
+        @media (max-width: 1919.9px) {
+            #i_cecream .video-list-item {
+                display:block!important;
+            }
+        }
+        @media (max-width: 2199.9px) {
+            #i_cecream .video-list-item {
+                display:block!important;
+            }
+        }
+    `
+    GM_addStyle(css)
+
     // 获取过滤日期
     function getQueryObject(url) {
         url = url == null ? window.location.href : url
@@ -37,72 +66,39 @@
         dateRange = dateRange.split('_');
     }
 
-    // 获取结果的数量
-    let numResult = 0;
+    // 过滤的结果
+    let result = [];
     // 日期过滤的页码
     let actualPage = 1;
     // b站对应页面
-    let page = 1;
+    let requestPage = 1;
     // 数量
     let pageSize = 0;
+    // 没有更多数据
+    let finished = false;
+    // 最后一个video-item，用于重新加载后滚动到原来位置
+    let lastVideo = 0;
 
     // 重写fetch，拦截fetch请求
     const originFetch = fetch;
-    unsafeWindow.fetch = function(url, options) {
-        // GM_log("fetch", url);
+    unsafeWindow.fetch = async function(url, options) {
         // 只对视频和专栏搜索接口
         let params = getQueryObject(url);
-        // 应该是预览的偏移量，必须跟页码数量保持一致，不然会有重复数据
-        url = url.replace(/dynamic_offset=[0-9]+/, `dynamic_offset=${(params.page - 1) * params.page_size}`)
-        if(url.indexOf('x/web-interface/search/type') > -1 && params.search_type === 'video') {
-            return new Promise((resolve, reject) => {
-                originFetch.call(this, url, options).then(response => {
-                    const originJson = response.json;
-                    response.json = function() {
-                        return new Promise((resolve, reject) => {
-                            originJson.call(this).then(result => {
-                                // 过滤日期范围
-                                if(date !== 'none') {
-                                    pageSize = result.data.pagesize;
-                                    if(result.data && result.data.result) {
-                                        result.data.result = result.data.result.filter(ele => ele.pubdate >= dateRange[0] && ele.pubdate <= dateRange[1]);
-                                        GM_log("fetch result", result.data.result);
-                                    }
-
-                                    if(unsafeWindow.self === unsafeWindow.top) {
-                                        // 显示页面
-                                        if(result.data && result.data.result) {
-                                            numResult += result.data.result.length;
-                                            loadMore();
-                                        } else {
-                                            hideLoadBtn();
-                                        }
-
-                                        setTimeout(() => {
-                                            replaceLoadBtn();
-                                        }, 0);
-                                    } else {
-                                        // iframe
-                                        if(result.data && result.data.result) {
-                                            unsafeWindow.parent.postMessage({
-                                                origin: 'iframe',
-                                                event: 'loaded'
-                                            }, location.origin);
-                                        } else {
-                                            unsafeWindow.parent.postMessage({
-                                                origin: 'iframe',
-                                                event: 'finished'
-                                            }, location.origin);
-                                        }
-                                    }
-                                }
-                                resolve(result);
-                            });
-                        });
-                    };
-                    resolve(response);
-                });
-            });
+        if(url.indexOf('x/web-interface/search/type') > -1 && params.search_type === 'video' && date !== 'none') {
+            actualPage = params.page;
+            pageSize = params.page_size;
+            let result = await requestData(url, options);
+            let response = new Response();
+            response.json = function() {
+                return new Promise(resolve => {
+                    resolve(result);
+                })
+            }
+            setTimeout(() => {
+                replaceLoadBtn();
+                eleScroll();
+            }, 0);
+            return response;
         } else {
             return originFetch(url, options);
         }
@@ -127,22 +123,16 @@
             // 重写replace方法，拦截跳转，更新route，初始化数据
             const routerReplace = router.replace;
             router.replace = function(toRoute) {
-                GM_log("isEqual", unsafeWindow.isEqual(route, toRoute));
-                route = toRoute;
-                numResult = 0;
-                actualPage = 1;
-                page = 1;
-                pageSize = 0;
-                return routerReplace.call(this, toRoute);
-            }
-        })
-    
-        unsafeWindow.addEventListener('message', function(evt) {
-            if(evt.origin === location.origin && evt.data.origin && evt.data.origin === 'iframe') {
-                if(evt.data.event === 'loaded') {
-                    appendVideoItem();
-                } else if(evt.data.event === 'finished') {
-                    hideLoadBtn();
+                if(!toRoute.query.date || toRoute.query.date === 'none' || !toRoute.query.page) {
+                    route = toRoute;
+                    actualPage = 1;
+                    requestPage = 1;
+                    pageSize = 0;
+                    finished = false;
+                    lastVideo = 0;
+                    return routerReplace.call(this, toRoute);
+                } else {
+                    lastVideo = result.length - 1;
                 }
             }
         })
@@ -232,73 +222,59 @@
     // 隐藏分页按钮，替换为查看更多按钮
     function replaceLoadBtn() {
         if(date !== 'none') {
-            let pagenation = document.querySelector('.vui_pagenation');
-            if(pagenation) {
-                let loadBtn = document.createElement('button');
+            let pagenationBtnSide = document.querySelectorAll('.vui_pagenation--btn-side');
+            if(pagenationBtnSide.length > 1) {
+                let loadBtn = pagenationBtnSide[1];
                 loadBtn.id = 'date-load-btn';
-                loadBtn.className = 'vui_button';
                 loadBtn.textContent = '查看更多';
-                loadBtn.addEventListener('click', loadMore);
-    
-                pagenation.parentNode.replaceChild(loadBtn, pagenation);
-            }
-        }
-    }
-
-    // 隐藏查看更多按钮
-    function hideLoadBtn() {
-        let loadBtn = document.querySelector('#date-load-btn');
-        if(loadBtn) {
-            loadBtn.parentNode.style.display = 'none';
-        }
-    }
-
-    // 是否加载更多
-    let iframe = null;
-    function loadMore() {
-        // 判断是否iframe
-        if(unsafeWindow.self === unsafeWindow.top) {
-            // 数量不够
-            if(numResult < actualPage * pageSize) {
-                // 判断是否已经创建过iframe
-                if(!iframe) {
-                    iframe = document.createElement('iframe');
-                    iframe.width = '100vw';
-                    iframe.height = '0';
-                    document.body.appendChild(iframe);
+                
+                let parentNode = loadBtn.parentNode;
+                while(parentNode.childElementCount > 1) {
+                    parentNode.removeChild(parentNode.firstChild);
                 }
-    
-                // 加载原来页码
-                page++;
-                let url = location.href + `&page=${page}`;
-                iframe.src = url;
-            } else {
-                // 可以点击查看更多
-                actualPage++;
             }
         }
     }
 
-    // 截取iframe video-item拼接到当前页面
-    function appendVideoItem() {
+    function eleScroll() {
         let parentNode = document.querySelector('.video-list');
-        let fragment = document.createDocumentFragment();
-        let iframeDocument = iframe.contentWindow.document;
-        let videoList = iframeDocument.querySelector('.video-list');
-        if(videoList) {
-            let nodeList = videoList.children;
-            numResult += nodeList.length;
-            if(parentNode) {
-                // 第一页有数据
-                fragment.append(...nodeList);
-                parentNode.appendChild(fragment);
+        if(parentNode && parentNode.childElementCount > lastVideo) {
+            parentNode.children[lastVideo].scrollIntoView({behavior: 'smooth', block: 'center', inline: 'nearest'});
+        }
+    }
+
+    // 请求数据保存
+    async function requestData(url, options) {
+        while(true) {
+            url = url.replace(/page=[0-9]+/, `page=${requestPage}`);
+            // 应该是浏览的偏移量，必须跟页码数量保持一致，不然会有重复数据
+            url = url.replace(/dynamic_offset=[0-9]+/, `dynamic_offset=${(requestPage - 1) * pageSize}`);
+            let data = await originFetch(url, options).then(response => {
+                return response.json();
+            });
+            if(data.data && data.data.result) {
+                let list = data.data.result.filter(ele => ele.pubdate >= dateRange[0] && ele.pubdate <= dateRange[1]);
+                result = result.concat(list);
             } else {
-                // 第一页数据为空
-                let noDataNode = document.querySelector('.search-nodata-container');
-                noDataNode.parentNode.replaceChild(videoList.parentNode, noDataNode);
-                replaceLoadBtn();
+                // 没有更多数据了
+                finished = true;
+            }
+            requestPage++;
+            if(finished || result.length >= actualPage * pageSize) {
+                data.data.result = result;
+                data.data.page = actualPage;
+                return data;
+            } else {
+                let time = Math.round(Math.random() * 200) + 300;
+                await delay(time);
             }
         }
-        loadMore();
+    }
+
+    // 防止请求频繁，被封ip
+    function delay(n){
+        return new Promise(function(resolve){
+            setTimeout(resolve, n);
+        });
     }
 })();
