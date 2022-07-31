@@ -1,7 +1,10 @@
 // ==UserScript==
 // @name         Bilibili Search Filter By Time
-// @namespace    http://tampermonkey.net/
-// @version      0.1
+// @namespace    https://github.com/KID-joker/userscript
+// @version      1.0
+// @updateURL    https://github.com/KID-joker/userscript/blob/main/bilibili-search-filter-by-time.js
+// @downloadURL  https://github.com/KID-joker/userscript/blob/main/bilibili-search-filter-by-time.js
+// @supportURL   https://github.com/KID-joker/userscript/issues
 // @description  add time filter to bilibili search results
 // @author       KID-joker
 // @match        https://search.bilibili.com/*
