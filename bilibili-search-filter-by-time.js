@@ -6,13 +6,15 @@
 // @author       KID-joker
 // @match        https://search.bilibili.com/*
 // @icon         https://www.bilibili.com/favicon.ico?v=1
-// @request      https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js
+// @require      https://raw.githubusercontent.com/KID-joker/userscript/main/lib/lodash.isequal%404.5.0.js
+// @require      https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js
 // @grant        GM_log
 // @grant        unsafeWindow
 // @run-at       document-start
 // ==/UserScript==
 
 (function() {
+    GM_log('hello', unsafeWindow);
     // 获取过滤日期
     function getQueryObject(url) {
         url = url == null ? window.location.href : url
