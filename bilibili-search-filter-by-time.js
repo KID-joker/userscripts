@@ -6,9 +6,11 @@
 // @author       KID-joker
 // @match        https://search.bilibili.com/*
 // @icon         https://www.bilibili.com/favicon.ico?v=1
-// @require      https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js
+// @resource css https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css
+// @require      https://cdn.jsdelivr.net/npm/flatpickr
 // @grant        GM_log
 // @grant        GM_addStyle
+// @grant        GM_getResourceText
 // @grant        unsafeWindow
 // @run-at       document-start
 // ==/UserScript==
@@ -43,6 +45,7 @@
         }
     `
     GM_addStyle(css)
+    GM_addStyle(GM_getResourceText('css'));
 
     // 获取过滤日期
     function getQueryObject(url) {
@@ -80,11 +83,13 @@
     let finished = false;
     // 最大页码
     let maxPage = 1;
+    // 自定义日期选择弹窗
+    let fp = null;
 
     // 重写fetch，拦截fetch请求
     const originFetch = fetch;
     unsafeWindow.fetch = async function(url, options) {
-        // 只对视频和专栏搜索接口
+        // 只针对视频搜索接口
         let params = getQueryObject(url);
         if(url.indexOf('x/web-interface/search/type') > -1 && params.search_type === 'video' && date !== 'none') {
             actualPage = params.page;
@@ -201,27 +206,49 @@
             }, 0);
         } else if(datecondition === 'custom') {
             // 自定义日期范围，弹出日期选择弹窗
-
-        } else {
-            // 固定日期范围选择
-            let now = Math.floor(Date.now() / 1000);
-            let timeMap = {
-                'day': 86400,
-                'week': 604800,
-                'month': 2592000,
-                'year': 31536000
+            if(!fp) {
+                fp = evt.target.flatpickr({
+                    clickOpens: false,
+                    maxDate: 'today',
+                    mode: 'range',
+                    onChange: function(selectedDates) {
+                        if(selectedDates.length == 2) {
+                            let startTime = +selectedDates[0];
+                            let endTime = +selectedDates[1];
+                            if(startTime == endTime) {
+                                endTime += 86400000;
+                            }
+                            endTime = Math.min(Date.now(), endTime);
+                            filterByDate(datecondition, startTime, endTime);
+                        }
+                    }
+                });
             }
-            let { page, o, ...query } = route.query;
-            query.date = datecondition;
-            query.date_range = `${now - timeMap[datecondition]}_${now}`;
-            router.replace({
-                name: 'video',
-                query
-            });
-            setTimeout(() => {
-                router.go(0);
-            }, 0);
+            fp.open();
+        } else if(datecondition) {
+            // 固定日期范围选择
+            let endTime = Date.now();
+            let timeMap = {
+                'day': 86400000,
+                'week': 604800000,
+                'month': 2592000000,
+                'year': 31536000000
+            }
+            filterByDate(datecondition, endTime - timeMap[datecondition], endTime);
         }
+    }
+
+    function filterByDate(datecondition, startTime, endTime) {
+        let { page, o, ...query } = route.query;
+        query.date = datecondition;
+        query.date_range = `${Math.floor(startTime / 1000)}_${Math.floor(endTime / 1000)}`;
+        router.replace({
+            name: 'video',
+            query
+        });
+        setTimeout(() => {
+            router.go(0);
+        }, 0);
     }
 
     // 隐藏分页按钮
