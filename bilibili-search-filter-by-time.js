@@ -66,6 +66,8 @@
         dateRange = dateRange.split('_');
     }
 
+    // 返回json结果
+    let responseJson = null;
     // 过滤的结果
     let result = [];
     // 日期过滤的页码
@@ -76,8 +78,8 @@
     let pageSize = 0;
     // 没有更多数据
     let finished = false;
-    // 最后一个video-item，用于重新加载后滚动到原来位置
-    let lastVideo = 0;
+    // 最大页码
+    let maxPage = 1;
 
     // 重写fetch，拦截fetch请求
     const originFetch = fetch;
@@ -87,16 +89,20 @@
         if(url.indexOf('x/web-interface/search/type') > -1 && params.search_type === 'video' && date !== 'none') {
             actualPage = params.page;
             pageSize = params.page_size;
-            let result = await requestData(url, options);
+            if(result.length < actualPage * pageSize) {
+                await requestData(url, options);
+            }
+            let reponseResult = result.slice((actualPage - 1) * pageSize, actualPage * pageSize);
             let response = new Response();
             response.json = function() {
                 return new Promise(resolve => {
-                    resolve(result);
+                    responseJson.data.page = +actualPage;
+                    responseJson.data.result = reponseResult;
+                    resolve(responseJson);
                 })
             }
             setTimeout(() => {
-                replaceLoadBtn();
-                eleScroll();
+                changePagenationBtn();
             }, 0);
             return response;
         } else {
@@ -123,16 +129,15 @@
             // 重写replace方法，拦截跳转，更新route，初始化数据
             const routerReplace = router.replace;
             router.replace = function(toRoute) {
+                // 筛选条件改变
                 if(!toRoute.query.date || toRoute.query.date === 'none' || !toRoute.query.page) {
                     route = toRoute;
+                    result = [];
                     actualPage = 1;
                     requestPage = 1;
                     pageSize = 0;
                     finished = false;
-                    lastVideo = 0;
                     return routerReplace.call(this, toRoute);
-                } else {
-                    lastVideo = result.length - 1;
                 }
             }
         })
@@ -219,27 +224,31 @@
         }
     }
 
-    // 隐藏分页按钮，替换为查看更多按钮
-    function replaceLoadBtn() {
+    // 隐藏分页按钮
+    function changePagenationBtn() {
         if(date !== 'none') {
-            let pagenationBtnSide = document.querySelectorAll('.vui_pagenation--btn-side');
-            if(pagenationBtnSide.length > 1) {
-                let loadBtn = pagenationBtnSide[1];
-                loadBtn.id = 'date-load-btn';
-                loadBtn.textContent = '查看更多';
-                
-                let parentNode = loadBtn.parentNode;
-                while(parentNode.childElementCount > 1) {
-                    parentNode.removeChild(parentNode.firstChild);
+            let pagenationBtnList = document.querySelectorAll('.vui_pagenation--btn-num');
+            if(pagenationBtnList.length > 0) {
+                for(let btn of pagenationBtnList) {
+                    btn.remove();
                 }
             }
-        }
-    }
+            let pagenationText = document.querySelector('.vui_pagenation--extend');
+            if(pagenationText) {
+                pagenationText.remove();
+            }
 
-    function eleScroll() {
-        let parentNode = document.querySelector('.video-list');
-        if(parentNode && parentNode.childElementCount > lastVideo) {
-            parentNode.children[lastVideo].scrollIntoView({behavior: 'smooth', block: 'center', inline: 'nearest'});
+            let pagenationParent = document.querySelector('.vui_pagenation--btns');
+            if(pagenationParent) {
+                let nextPagenation = pagenationParent.lastChild;
+                if(finished && actualPage === maxPage) {
+                    nextPagenation.className += ' vui_button--disabled';
+                    nextPagenation.setAttribute('disabled', 'disabled')
+                } else {
+                    nextPagenation.className = nextPagenation.className.replace(' vui_button--disabled', '');
+                    nextPagenation.removeAttribute('disabled');
+                }
+            }
         }
     }
 
@@ -249,21 +258,25 @@
             url = url.replace(/page=[0-9]+/, `page=${requestPage}`);
             // 应该是浏览的偏移量，必须跟页码数量保持一致，不然会有重复数据
             url = url.replace(/dynamic_offset=[0-9]+/, `dynamic_offset=${(requestPage - 1) * pageSize}`);
-            let data = await originFetch(url, options).then(response => {
+            let _responseJson = await originFetch(url, options).then(response => {
                 return response.json();
             });
-            if(data.data && data.data.result) {
-                let list = data.data.result.filter(ele => ele.pubdate >= dateRange[0] && ele.pubdate <= dateRange[1]);
+            if(_responseJson.data && _responseJson.data.result) {
+                if(_responseJson.data.result.length < pageSize) {
+                    finished = true;
+                    maxPage = actualPage;
+                }
+                responseJson = _responseJson;
+                let list = responseJson.data.result.filter(ele => ele.pubdate >= dateRange[0] && ele.pubdate <= dateRange[1]);
                 result = result.concat(list);
             } else {
                 // 没有更多数据了
                 finished = true;
+                maxPage = actualPage;
             }
             requestPage++;
             if(finished || result.length >= actualPage * pageSize) {
-                data.data.result = result;
-                data.data.page = actualPage;
-                return data;
+                return;
             } else {
                 let time = Math.round(Math.random() * 200) + 300;
                 await delay(time);
