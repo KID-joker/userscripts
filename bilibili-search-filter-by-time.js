@@ -10,12 +10,13 @@
 // @match        https://search.bilibili.com/*
 // @icon         https://www.bilibili.com/favicon.ico?v=1
 // @resource css https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css
-// @require      https://cdn.jsdelivr.net/npm/flatpickr
+// @require      https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js
 // @grant        GM_log
 // @grant        GM_addStyle
 // @grant        GM_getResourceText
 // @grant        unsafeWindow
 // @run-at       document-start
+// @license      MIT
 // ==/UserScript==
 
 (function() {
