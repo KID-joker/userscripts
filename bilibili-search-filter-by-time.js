@@ -127,6 +127,7 @@
             // 重写replace方法，拦截跳转，更新route，初始化数据
             const routerReplace = router.replace;
             router.replace = function(toRoute) {
+                GM_log("isEqual", unsafeWindow.isEqual(route, toRoute));
                 route = toRoute;
                 numResult = 0;
                 actualPage = 1;
