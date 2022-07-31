@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bilibili Search Filter By Time
 // @namespace    https://github.com/KID-joker/userscript
-// @version      1.0
+// @version      1.0.1
 // @updateURL    https://github.com/KID-joker/userscript/blob/main/bilibili-search-filter-by-time.js
 // @downloadURL  https://github.com/KID-joker/userscript/blob/main/bilibili-search-filter-by-time.js
 // @supportURL   https://github.com/KID-joker/userscript/issues
@@ -120,36 +120,34 @@
 
     // 获取vue实例、vue-router实例
     let app = null, router = null, route = null;
-    if(unsafeWindow.self === unsafeWindow.top) {
-        document.addEventListener('DOMContentLoaded', function() {
-            app = document.querySelector('#i_cecream').__vue_app__;
-            router = app.config.globalProperties.$router;
-            route = app.config.globalProperties.$route;
+    document.addEventListener('DOMContentLoaded', function() {
+        app = document.querySelector('#i_cecream').__vue_app__;
+        router = app.config.globalProperties.$router;
+        route = app.config.globalProperties.$route;
+        if(route.name === 'video') {
+            insertComponent();
+        }
+        router.afterEach(route => {
             if(route.name === 'video') {
                 insertComponent();
             }
-            router.afterEach(route => {
-                if(route.name === 'video') {
-                    insertComponent();
-                }
-            })
-
-            // 重写replace方法，拦截跳转，更新route，初始化数据
-            const routerReplace = router.replace;
-            router.replace = function(toRoute) {
-                // 筛选条件改变
-                if(!toRoute.query.date || toRoute.query.date === 'none' || !toRoute.query.page) {
-                    route = toRoute;
-                    result = [];
-                    actualPage = 1;
-                    requestPage = 1;
-                    pageSize = 0;
-                    finished = false;
-                    return routerReplace.call(this, toRoute);
-                }
-            }
         })
-    }
+
+        // 重写replace方法，拦截跳转，更新route，初始化数据
+        const routerReplace = router.replace;
+        router.replace = function(toRoute) {
+            // 筛选条件改变
+            if(!toRoute.query.date || toRoute.query.date === 'none' || !toRoute.query.page) {
+                route = toRoute;
+                result = [];
+                actualPage = 1;
+                requestPage = 1;
+                pageSize = 0;
+                finished = false;
+                return routerReplace.call(this, toRoute);
+            }
+        }
+    })
 
     // 插入日期过滤组件
     function insertComponent() {
