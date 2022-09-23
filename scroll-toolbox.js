@@ -144,7 +144,7 @@ const icons = {
         unsafeWindow.scrollBy({
           top: 1
         });
-        if(getScrollValue('scrollHeight') - getScrollValue('scrollTop') == getScrollValue('clientHeight')) {
+        if(getScrollValue('scrollHeight') - getScrollValue('scrollTop') <= getScrollValue('clientHeight')) {
           stopRead();
         } else {
           scrollRequestID = window.requestAnimationFrame(scroll);
