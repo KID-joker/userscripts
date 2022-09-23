@@ -135,27 +135,30 @@ const icons = {
       behavior: "smooth"
     })
   }
-  let scrollintervalID;
+  let scrollRequestID;
   function read(event) {
-    if(scrollintervalID) {
+    if(scrollRequestID) {
       stopRead();
     } else {
-      scrollintervalID = setInterval(() => {
+      function scroll() {
         unsafeWindow.scrollBy({
           top: 1
         });
         if(getScrollValue('scrollHeight') - getScrollValue('scrollTop') == getScrollValue('clientHeight')) {
           stopRead();
+        } else {
+          scrollRequestID = window.requestAnimationFrame(scroll);
         }
-      }, 10);
+      }
+      scrollRequestID = window.requestAnimationFrame(scroll);
       let readIcon = document.querySelector('#tool-read');
       readIcon.innerHTML = icons.stopRead;
     }
   }
   function stopRead() {
     let readIcon = document.querySelector('#tool-read');
-    clearInterval(scrollintervalID);
-    scrollintervalID = null;
+    cancelAnimationFrame(scrollRequestID);
+    scrollRequestID = null;
     readIcon.innerHTML = icons.autoRead;
   }
   function getScrollValue(key) {
