@@ -31,20 +31,24 @@ const icons = {
    */
   // toolbox
   function insertToolbox() {
-    let clientX = GM_getValue('clientX');
-    let clientY = GM_getValue('clientY');
-    let box = document.createElement('div');
+    const toolbox = document.querySelector('#userscript-scroll-toolbox');
+    if(toolbox) {
+      return;
+    }
+    const clientX = GM_getValue('clientX');
+    const clientY = GM_getValue('clientY');
+    const box = document.createElement('div');
     box.id = 'userscript-scroll-toolbox';
     box.draggable = true;
     box.ondragend = moveToolbox;
     setToolboxPosition(box, clientX, clientY);
-    let fragment = document.createDocumentFragment();
-    let list = ['top', 'bottom', 'read'];
+    const fragment = document.createDocumentFragment();
+    const list = ['top', 'bottom', 'read'];
     list.forEach(ele => {
-      let button = document.createElement('div');
+      const button = document.createElement('div');
       button.className = 'tool-btn';
       button.addEventListener('click', eventFuncList[ele]);
-      let icon = document.createElement('div');
+      const icon = document.createElement('div');
       icon.id = `tool-${ele}`;
       icon.className = 'tool-icon';
       if(ele == 'read') {
@@ -64,7 +68,7 @@ const icons = {
   /**
    * style
    */
-  let cssStyle = `
+  const cssStyle = `
     #userscript-scroll-toolbox {
       position: fixed;
       z-index: 999999;
@@ -151,12 +155,12 @@ const icons = {
         }
       }
       scrollRequestID = window.requestAnimationFrame(scroll);
-      let readIcon = document.querySelector('#tool-read');
+      const readIcon = document.querySelector('#tool-read');
       readIcon.innerHTML = icons.stopRead;
     }
   }
   function stopRead() {
-    let readIcon = document.querySelector('#tool-read');
+    const readIcon = document.querySelector('#tool-read');
     cancelAnimationFrame(scrollRequestID);
     scrollRequestID = null;
     readIcon.innerHTML = icons.autoRead;
