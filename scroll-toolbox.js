@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         scroll toolbox
 // @namespace    https://github.com/KID-joker/userscript
-// @version      1.0.3
+// @version      1.0.4
 // @updateURL    https://github.com/KID-joker/userscript/blob/main/scroll-toolbox.js
 // @downloadURL  https://github.com/KID-joker/userscript/blob/main/scroll-toolbox.js
 // @supportURL   https://github.com/KID-joker/userscript/issues
@@ -173,4 +173,14 @@ const icons = {
   function getScrollValue(key) {
     return document.documentElement[key] || document.body[key];
   }
+  // 监听视频全屏
+  document.addEventListener("fullscreenchange", function(event) {
+    const element = document.fullscreenElement;
+    const toolbox = document.querySelector('#userscript-scroll-toolbox');
+    if (element !== null) {
+      toolbox.style.display = 'none';
+    } else {
+      toolbox.style.display = 'block';
+    }
+  });
 })();
