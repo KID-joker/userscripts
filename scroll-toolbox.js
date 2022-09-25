@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         scroll toolbox
 // @namespace    https://github.com/KID-joker/userscript
-// @version      1.0.6
+// @version      1.0.7
 // @updateURL    https://github.com/KID-joker/userscript/blob/main/scroll-toolbox.js
 // @downloadURL  https://github.com/KID-joker/userscript/blob/main/scroll-toolbox.js
 // @supportURL   https://github.com/KID-joker/userscript/issues
@@ -31,6 +31,10 @@ const icons = {
    */
   // toolbox
   function insertToolbox() {
+    // 在iframe中
+    if(unsafeWindow.self != unsafeWindow.top) {
+      return;
+    }
     // 没有滚动条
     if(getScrollValue('scrollHeight') == getScrollValue('clientHeight')) {
       return;
