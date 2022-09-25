@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         scroll toolbox
 // @namespace    https://github.com/KID-joker/userscript
-// @version      1.0.4
+// @version      1.0.5
 // @updateURL    https://github.com/KID-joker/userscript/blob/main/scroll-toolbox.js
 // @downloadURL  https://github.com/KID-joker/userscript/blob/main/scroll-toolbox.js
 // @supportURL   https://github.com/KID-joker/userscript/issues
@@ -153,20 +153,20 @@ const icons = {
         unsafeWindow.scrollBy({
           top: 1
         });
-        if(getScrollValue('scrollHeight') - getScrollValue('scrollTop') <= getScrollValue('clientHeight')) {
+        if(getScrollValue('scrollHeight') - getScrollValue('scrollTop') <= getScrollValue('clientHeight') + 6) {
           stopRead();
         } else {
-          scrollRequestID = window.requestAnimationFrame(scroll);
+          scrollRequestID = unsafeWindow.requestAnimationFrame(scroll);
         }
       }
-      scrollRequestID = window.requestAnimationFrame(scroll);
+      scrollRequestID = unsafeWindow.requestAnimationFrame(scroll);
       const readIcon = document.querySelector('#tool-read');
       readIcon.innerHTML = icons.stopRead;
     }
   }
   function stopRead() {
     const readIcon = document.querySelector('#tool-read');
-    cancelAnimationFrame(scrollRequestID);
+    unsafeWindow.cancelAnimationFrame(scrollRequestID);
     scrollRequestID = null;
     readIcon.innerHTML = icons.autoRead;
   }
