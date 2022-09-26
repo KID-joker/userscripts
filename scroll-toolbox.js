@@ -71,7 +71,10 @@ const icons = {
     document.body.appendChild(box);
   }
   document.addEventListener('DOMContentLoaded', function() {
-    insertToolbox();
+    // 数据加载
+    setTimeout(() => {
+      insertToolbox();
+    }, 3000);
   });
   /**
    * style
