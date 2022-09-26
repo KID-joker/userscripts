@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         scroll toolbox
 // @namespace    https://github.com/KID-joker/userscript
-// @version      1.0.7
+// @version      1.0.8
 // @updateURL    https://github.com/KID-joker/userscript/blob/main/scroll-toolbox.js
 // @downloadURL  https://github.com/KID-joker/userscript/blob/main/scroll-toolbox.js
 // @supportURL   https://github.com/KID-joker/userscript/issues
