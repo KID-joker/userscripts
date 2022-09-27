@@ -11,3 +11,7 @@ Tips: **Only valid for video. Please switch to the video section to use.**
 Back to top and to bottom quickly and smoothly.
 
 There is also a reading mode.It scrolls automatically without sliding the mouse.
+
+## [multiple search](https://greasyfork.org/en/scripts/452101-multiple-search)
+
+Multiple searches appear after wording.
