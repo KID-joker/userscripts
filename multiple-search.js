@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         multiple search
 // @namespace    https://github.com/KID-joker/userscript
-// @version      1.0.2
+// @version      1.0.3
 // @updateURL    https://github.com/KID-joker/userscript/blob/main/multiple-search.js
 // @downloadURL  https://github.com/KID-joker/userscript/blob/main/multiple-search.js
 // @supportURL   https://github.com/KID-joker/userscript/issues
@@ -57,9 +57,9 @@
     box = document.createElement('div');
     box.id = 'userscript-search-toolbox';
     box.addEventListener('click', clickFunc);
-    box.addEventListener('mouseup', function(event) {
-      event.stopPropagation();
-    })
+    // box.addEventListener('mouseup', function(event) {
+    //   event.stopPropagation();
+    // })
     const fragment = createFragment(searchList, { listen: true });
     box.appendChild(fragment);
     return box;
@@ -85,6 +85,7 @@
   const cssStyle = `
     #userscript-search-toolbox {
       position: absolute;
+      z-index: 999999;
       background-color: #fbfbfb;
       height: 44px;
       border-radius: 4px;
