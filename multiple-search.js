@@ -187,7 +187,6 @@
       list = parentEle.children;
     }
     const ele = list.find(ele => ele.name == id);
-    console.log(parent, id, list, ele);
     if(ele.func) {
       ele.func(selectText);
       return;
