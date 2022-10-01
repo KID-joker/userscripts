@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         multiple search
 // @namespace    https://github.com/KID-joker/userscript
-// @version      1.0.3
+// @version      1.0.4
 // @updateURL    https://github.com/KID-joker/userscript/blob/main/multiple-search.js
 // @downloadURL  https://github.com/KID-joker/userscript/blob/main/multiple-search.js
 // @supportURL   https://github.com/KID-joker/userscript/issues
@@ -51,7 +51,7 @@
   function createComponent() {
     let box = document.querySelector('#userscript-search-toolbox');
     if(box) {
-      box.style.display = 'flex';
+      box.style.display = 'block';
       return box;
     }
     box = document.createElement('div');
@@ -68,11 +68,7 @@
     const box = document.createElement('div');
     box.id = `userscript-search-${id}`;
     box.className = 'userscript-search-childBox';
-    if(positionY == 'top') {
-      box.style.bottom = '100%';
-    } else {
-      box.style.top = '100%';
-    }
+    box.style[position] = '100%';
     box.addEventListener('click', clickFunc);
     const fragment = createFragment(list, { parent: id });
     box.appendChild(fragment);
@@ -87,10 +83,8 @@
       position: absolute;
       z-index: 999999;
       background-color: #fbfbfb;
-      height: 44px;
+      width: 44px;
       border-radius: 4px;
-      display: flex;
-      justify-content: center;
       -webkit-user-select: none;
       user-select: none;
     }
@@ -121,8 +115,9 @@
     #userscript-search-toolbox .userscript-search-childBox {
       position: absolute;
       background-color: #fbfbfb;
-      width: 44px;
+      height: 44px;
       border-radius: 4px;
+      display: flex;
       -webkit-user-select: none;
       user-select: none;
     }
@@ -133,14 +128,19 @@
    * javascript
    */
   let selectText;
+  let startX;
   document.addEventListener('keydown', hideElement);
-  document.addEventListener('mousedown', hideElement);
+  document.addEventListener('mousedown', function(event) {
+    startX = event.clientX;
+    hideElement(event);
+  });
   document.addEventListener('mouseup', function(event) {
     if(event.button === 0) {
       setTimeout(() => {
         const selection = unsafeWindow.getSelection();
         selectText = selection.toString().trim();
-        if(selection && selection.focusNode.nodeType == 3 && !!selectText) {
+        if(selection && selection.focusNode && selection.focusNode.nodeType == 3 && !!selectText) {
+          position = event.clientX < startX ? 'left' : 'right';
           insertComponent(selection.focusNode.parentElement);
         }
       }, 300);
@@ -152,25 +152,19 @@
       ele.style.display = 'none';
     }
   }
-  let positionY;
+  let position;
   function insertComponent(selectionElement) {
-    const centerX = unsafeWindow.screen.availWidth / 2;
-    const centerY = unsafeWindow.screen.availHeight / 2;
     const selectionDOMRect = selectionElement.getBoundingClientRect();
-    const x = (selectionDOMRect.left + selectionDOMRect.right) / 2;
-    const y = (selectionDOMRect.top + selectionDOMRect.bottom) / 2;
     const component = createComponent();
-    if(x <= centerX) {
-      component.style.left = `${selectionDOMRect.left + unsafeWindow.scrollX}px`;
+    if(selectionDOMRect.top + unsafeWindow.scrollY + 572 > document.body.clientHeight) {
+      component.style.top = `${document.body.clientHeight - 572}px`;
     } else {
-      component.style.left = `${selectionDOMRect.right + unsafeWindow.scrollX - 13 * 44}px`;
+      component.style.top = `${selectionDOMRect.top + unsafeWindow.scrollY}px`;
     }
-    if(y <= centerY) {
-      component.style.top = `${selectionDOMRect.bottom + unsafeWindow.scrollY}px`;
-      positionY = 'bottom';
+    if(position == 'left') {
+      component.style.left = `${selectionDOMRect.left - 88}px`;
     } else {
-      component.style.top = `${selectionDOMRect.top + unsafeWindow.scrollY - 44}px`;
-      positionY = 'top';
+      component.style.left = `${selectionDOMRect.right + 44}px`;
     }
     document.body.appendChild(component);
   }
@@ -193,7 +187,7 @@
       return;
     }
     if(ele.link) {
-      window.open(ele.link.replace('{{%s}}', selectText), '_blank');
+      unsafeWindow.open(ele.link.replace('{{%s}}', selectText), '_blank');
       return;
     }
   }
