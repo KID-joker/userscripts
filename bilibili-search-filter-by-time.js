@@ -94,8 +94,8 @@
     const originFetch = fetch;
     unsafeWindow.fetch = async function(url, options) {
         // 只针对视频搜索接口
-        let params = getQueryObject(url);
-        if(url.indexOf('x/web-interface/search/type') > -1 && params.search_type === 'video' && date !== 'none') {
+        let params = options.params;
+        if(url.indexOf('x/web-interface/wbi/search/type') > -1 && params.search_type === 'video' && date !== 'none') {
             actualPage = params.page;
             pageSize = params.page_size;
             if(result.length < actualPage * pageSize) {
