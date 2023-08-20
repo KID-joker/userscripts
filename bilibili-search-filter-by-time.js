@@ -11,6 +11,7 @@
 // @icon         https://www.bilibili.com/favicon.ico?v=1
 // @resource css https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css
 // @require      https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js
+// @require      https://cdn.jsdelivr.net/npm/js-md5@0.7.3/build/md5.min.js
 // @grant        GM_log
 // @grant        GM_addStyle
 // @grant        GM_getResourceText
@@ -66,12 +67,17 @@
         })
         return obj
     }
-    let queryObj = getQueryObject();
-    let date = queryObj.date || 'none';
-    let dateRange = queryObj.date_range;
-    if(date !== 'none') {
-        dateRange = dateRange.split('_');
+    let date = 'none';
+    let dateRange = [];
+    function getDate() {
+        let queryObj = getQueryObject();
+        date = queryObj.date || 'none';
+        dateRange = queryObj.date_range || [];
+        if(date !== 'none') {
+            dateRange = dateRange.split('_');
+        }
     }
+    getDate();
 
     // 返回json结果
     let responseJson = null;
@@ -101,12 +107,12 @@
             if(result.length < actualPage * pageSize) {
                 await requestData(url, options);
             }
-            let reponseResult = result.slice((actualPage - 1) * pageSize, actualPage * pageSize);
+            let responseResult = result.slice((actualPage - 1) * pageSize, actualPage * pageSize);
             let response = new Response();
             response.json = function() {
                 return new Promise(resolve => {
                     responseJson.data.page = +actualPage;
-                    responseJson.data.result = reponseResult;
+                    responseJson.data.result = responseResult;
                     resolve(responseJson);
                 })
             }
@@ -120,19 +126,25 @@
     }
 
     // 获取vue实例、vue-router实例
-    let app = null, router = null, route = null;
+    let app = null, router = null, route = null, searchBtn = null;
     document.addEventListener('DOMContentLoaded', function() {
+        searchBtn = document.querySelector('.search-button');
         app = document.querySelector('#i_cecream').__vue_app__;
         router = app.config.globalProperties.$router;
         route = app.config.globalProperties.$route;
         if(route.name === 'video') {
             insertComponent();
+        } else {
+            removeComponent();
         }
         router.afterEach(route => {
             if(route.name === 'video') {
                 insertComponent();
+            } else {
+                removeComponent();
             }
         })
+        // const vnode = route.matched.find(ele => ele.name == 'video').instances.default._;
 
         // 重写replace方法，拦截跳转，更新route，初始化数据
         const routerReplace = router.replace;
@@ -152,11 +164,11 @@
 
     // 插入日期过滤组件
     function insertComponent() {
-        if(document.querySelector('#date-search-confitions')) {
+        if(document.querySelector('#date-search-conditions')) {
             return;
         }
         let element = document.createElement('div');
-        element.id = 'date-search-confitions';
+        element.id = 'date-search-conditions';
         element.className = 'search-condition-row';
         element.addEventListener('click', clickDateCondition);
         let fragment = document.createDocumentFragment();
@@ -192,6 +204,38 @@
         element.appendChild(fragment);
         document.querySelector('.more-conditions').appendChild(element);
     }
+    // 移除日期过滤
+    function removeComponent() {
+        const dateCondition = document.querySelector('#date-search-conditions')
+        if(dateCondition) {
+            document.querySelector('.more-conditions').removeChild(dateCondition);
+        }
+    }
+    // 更新日期按钮状态
+    function updateComponent() {
+        const dateCondition = document.querySelector('#date-search-conditions')
+        if(dateCondition) {
+            [...dateCondition.children].forEach(btn => {
+                if(btn.dataset.datecondition == date) {
+                    btn.classList.add("vui_button--active")
+                } else {
+                    btn.classList.remove("vui_button--active");
+                }
+            })
+        }
+    }
+
+    function routerGo(query) {
+        router.replace({
+            'name': 'video',
+            query
+        });
+        setTimeout(() => {
+            getDate();
+            updateComponent();
+            searchBtn.click();
+        });
+    }
 
     // 日期过滤点击事件
     function clickDateCondition(evt) {
@@ -199,13 +243,7 @@
         if(datecondition === 'none') {
             // 时间不限
             let { date, date_range, ...query } = route.query;
-            router.replace({
-                'name': 'video',
-                query
-            });
-            setTimeout(() => {
-                router.go(0);
-            }, 0);
+            routerGo(query);
         } else if(datecondition === 'custom') {
             // 自定义日期范围，弹出日期选择弹窗
             if(!fp) {
@@ -244,13 +282,7 @@
         let { page, o, ...query } = route.query;
         query.date = datecondition;
         query.date_range = `${Math.floor(startTime / 1000)}_${Math.floor(endTime / 1000)}`;
-        router.replace({
-            name: 'video',
-            query
-        });
-        setTimeout(() => {
-            router.go(0);
-        }, 0);
+        routerGo(query);
     }
 
     // 隐藏分页按钮
@@ -284,9 +316,14 @@
     // 请求数据保存
     async function requestData(url, options) {
         while(true) {
-            url = url.replace(/page=[0-9]+/, `page=${requestPage}`);
+            const query = getQueryObject(url);
+            query.page = requestPage;
             // 应该是浏览的偏移量，必须跟页码数量保持一致，不然会有重复数据
-            url = url.replace(/dynamic_offset=[0-9]+/, `dynamic_offset=${(requestPage - 1) * pageSize}`);
+            query.dynamic_offset = (requestPage - 1) * pageSize;
+            // 请求加密
+            Object.assign(query, encWbi(query, encWbiKeys));
+            const urlObj = new URL(url);
+            url = `${urlObj.origin + urlObj.pathname}?${new URLSearchParams(query)}`;
             let _responseJson = await originFetch(url, options).then(response => {
                 return response.json();
             });
@@ -304,10 +341,10 @@
                 maxPage = actualPage;
             }
             requestPage++;
-            if(finished || result.length >= actualPage * pageSize) {
+            if(finished || result.length >= 21) {
                 return;
             } else {
-                let time = Math.round(Math.random() * 200) + 300;
+                let time = Math.round(Math.random() * 400) + 600;
                 await delay(time);
             }
         }
@@ -318,5 +355,67 @@
         return new Promise(function(resolve){
             setTimeout(resolve, n);
         });
+    }
+
+    // 请求加密
+    const encWbiKeys = {
+        wbiImgKey: "76e91e21c4df4e16af9467fd6f3e1095",
+        wbiSubKey: "ddfca332d157450784b807c59cd7921e"
+    }
+    function encWbi(st, dt) {
+        dt || (dt = {});
+        var Et = getWbiKey(dt),
+            St = Et.imgKey,
+            wt = Et.subKey;
+        if (St && wt) {
+            for (var xt = getMixinKey(St + wt), kt = Math.round(Date.now() / 1e3), Ht = Object.assign({}, st, {
+                    wts: kt
+                }), Wt = Object.keys(Ht).sort(), zt = [], Xt = /[!'\(\)*]/g, Qt = 0; Qt < Wt.length; Qt++) {
+                var Zt = Wt[Qt],
+                    an = Ht[Zt];
+                an && typeof an == "string" && (an = an.replace(Xt, "")), an != null && zt.push("".concat(
+                    encodeURIComponent(Zt), "=").concat(encodeURIComponent(an)))
+            }
+            var mn = zt.join("&"),
+                bn = md5(mn + xt);
+            return {
+                w_rid: bn,
+                wts: kt.toString()
+            }
+        }
+        return null
+    }
+    function getWbiKey(st) {
+        if (st.useAssignKey) return {
+            imgKey: st.wbiImgKey,
+            subKey: st.wbiSubKey
+        };
+        var dt = getLocal("wbi_img_url"),
+            Et = getLocal("wbi_sub_url"),
+            St = dt ? getKeyFromURL(dt) : st.wbiImgKey,
+            wt = Et ? getKeyFromURL(Et) : st.wbiSubKey;
+        return {
+            imgKey: St,
+            subKey: wt
+        }
+    }
+    function getLocal(st) {
+        try {
+            return localStorage.getItem(st)
+        } catch (dt) {
+            return null
+        }
+    }
+    function getKeyFromURL(st) {
+        return st.substring(st.lastIndexOf("/") + 1, st.length).split(".")[0]
+    }
+    function getMixinKey(st) {
+        var dt = [46, 47, 18, 2, 53, 8, 23, 32, 15, 50, 10, 31, 58, 3, 45, 35, 27, 43, 5, 49, 33, 9, 42, 19, 29, 28, 14, 39,
+                12, 38, 41, 13, 37, 48, 7, 16, 24, 55, 40, 61, 26, 17, 0, 1, 60, 51, 30, 4, 22, 25, 54, 21, 56, 59, 6, 63,
+                57, 62, 11, 36, 20, 34, 44, 52],
+            Et = [];
+        return dt.forEach(function (St) {
+            st.charAt(St) && Et.push(st.charAt(St))
+        }), Et.join("").slice(0, 32)
     }
 })();
