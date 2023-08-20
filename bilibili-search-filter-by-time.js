@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bilibili Search Filter By Time
 // @namespace    https://github.com/KID-joker/userscript
-// @version      1.0.1
+// @version      1.1.0
 // @updateURL    https://github.com/KID-joker/userscript/blob/main/bilibili-search-filter-by-time.js
 // @downloadURL  https://github.com/KID-joker/userscript/blob/main/bilibili-search-filter-by-time.js
 // @supportURL   https://github.com/KID-joker/userscript/issues
