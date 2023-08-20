@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bilibili Search Filter By Time
 // @namespace    https://github.com/KID-joker/userscript
-// @version      1.1.0
+// @version      1.1.1
 // @updateURL    https://github.com/KID-joker/userscript/blob/main/bilibili-search-filter-by-time.js
 // @downloadURL  https://github.com/KID-joker/userscript/blob/main/bilibili-search-filter-by-time.js
 // @supportURL   https://github.com/KID-joker/userscript/issues
@@ -54,7 +54,7 @@
 
     // 获取过滤日期
     function getQueryObject(url) {
-        url = url == null ? window.location.href : url
+        url = url == null ? unsafeWindow.location.href : url
         const search = url.substring(url.lastIndexOf('?') + 1)
         const obj = {}
         const reg = /([^?&=]+)=([^?&=]*)/g
@@ -102,6 +102,9 @@
         // 只针对视频搜索接口
         let params = options.params;
         if(url.indexOf('x/web-interface/wbi/search/type') > -1 && params.search_type === 'video' && date !== 'none') {
+            // 暂停上报
+            const originReportObserver = unsafeWindow.reportObserver;
+            unsafeWindow.reportObserver = null;
             actualPage = params.page;
             pageSize = params.page_size;
             if(result.length < actualPage * pageSize) {
@@ -119,6 +122,7 @@
             setTimeout(() => {
                 changePagenationBtn();
             }, 0);
+            unsafeWindow.reportObserver = originReportObserver;
             return response;
         } else {
             return originFetch(url, options);
