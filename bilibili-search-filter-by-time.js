@@ -20,7 +20,7 @@
 // @license      MIT
 // ==/UserScript==
 
-(function() {
+(function () {
     // 设置样式
     let css = `
         @media (max-width: 1099.9px) {
@@ -73,7 +73,7 @@
         let queryObj = getQueryObject();
         date = queryObj.date || 'none';
         dateRange = queryObj.date_range || [];
-        if(date !== 'none') {
+        if (date !== 'none') {
             dateRange = dateRange.split('_');
         }
     }
@@ -98,21 +98,21 @@
 
     // 重写fetch，拦截fetch请求
     const originFetch = fetch;
-    unsafeWindow.fetch = async function(url, options) {
+    unsafeWindow.fetch = async function (url, options) {
         // 只针对视频搜索接口
-        let params = options.params;
-        if(url.indexOf('x/web-interface/wbi/search/type') > -1 && params.search_type === 'video' && date !== 'none') {
+        let params = options?.params;
+        if (url.indexOf('x/web-interface/wbi/search/type') > -1 && params.search_type === 'video' && date !== 'none') {
             // 暂停上报
             const originReportObserver = unsafeWindow.reportObserver;
             unsafeWindow.reportObserver = null;
             actualPage = params.page;
             pageSize = params.page_size;
-            if(result.length < actualPage * pageSize) {
+            if (result.length < actualPage * pageSize) {
                 await requestData(url, options);
             }
             let responseResult = result.slice((actualPage - 1) * pageSize, actualPage * pageSize);
             let response = new Response();
-            response.json = function() {
+            response.json = function () {
                 return new Promise(resolve => {
                     responseJson.data.page = +actualPage;
                     responseJson.data.result = responseResult;
@@ -131,18 +131,18 @@
 
     // 获取vue实例、vue-router实例
     let app = null, router = null, route = null, searchBtn = null;
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
         searchBtn = document.querySelector('.search-button');
         app = document.querySelector('#i_cecream').__vue_app__;
         router = app.config.globalProperties.$router;
         route = app.config.globalProperties.$route;
-        if(route.name === 'video') {
+        if (route.name === 'video') {
             insertComponent();
         } else {
             removeComponent();
         }
         router.afterEach(route => {
-            if(route.name === 'video') {
+            if (route.name === 'video') {
                 insertComponent();
             } else {
                 removeComponent();
@@ -152,9 +152,9 @@
 
         // 重写replace方法，拦截跳转，更新route，初始化数据
         const routerReplace = router.replace;
-        router.replace = function(toRoute) {
+        router.replace = function (toRoute) {
             // 筛选条件改变
-            if(!toRoute.query.date || toRoute.query.date === 'none' || !toRoute.query.page) {
+            if (!toRoute.query.date || toRoute.query.date === 'none' || !toRoute.query.page) {
                 route = toRoute;
                 result = [];
                 actualPage = 1;
@@ -168,7 +168,7 @@
 
     // 插入日期过滤组件
     function insertComponent() {
-        if(document.querySelector('#date-search-conditions')) {
+        if (document.querySelector('#date-search-conditions')) {
             return;
         }
         let element = document.createElement('div');
@@ -195,12 +195,12 @@
             name: 'custom',
             title: '自定日期范围'
         }]
-        list.forEach(function(ele) {
+        list.forEach(function (ele) {
             let button = document.createElement('button');
             button.textContent = ele.title;
             button.className = 'vui_button vui_button--tab mt_sm mr_sm';
             button.dataset.datecondition = ele.name;
-            if(ele.name === date) {
+            if (ele.name === date) {
                 button.className += ' vui_button--active';
             }
             fragment.appendChild(button);
@@ -211,16 +211,16 @@
     // 移除日期过滤
     function removeComponent() {
         const dateCondition = document.querySelector('#date-search-conditions')
-        if(dateCondition) {
+        if (dateCondition) {
             document.querySelector('.more-conditions').removeChild(dateCondition);
         }
     }
     // 更新日期按钮状态
     function updateComponent() {
         const dateCondition = document.querySelector('#date-search-conditions')
-        if(dateCondition) {
+        if (dateCondition) {
             [...dateCondition.children].forEach(btn => {
-                if(btn.dataset.datecondition == date) {
+                if (btn.dataset.datecondition == date) {
                     btn.classList.add("vui_button--active")
                 } else {
                     btn.classList.remove("vui_button--active");
@@ -244,22 +244,22 @@
     // 日期过滤点击事件
     function clickDateCondition(evt) {
         let datecondition = evt.target.dataset.datecondition;
-        if(datecondition === 'none') {
+        if (datecondition === 'none') {
             // 时间不限
             let { date, date_range, ...query } = route.query;
             routerGo(query);
-        } else if(datecondition === 'custom') {
+        } else if (datecondition === 'custom') {
             // 自定义日期范围，弹出日期选择弹窗
-            if(!fp) {
+            if (!fp) {
                 fp = evt.target.flatpickr({
                     clickOpens: false,
                     maxDate: 'today',
                     mode: 'range',
-                    onChange: function(selectedDates) {
-                        if(selectedDates.length == 2) {
+                    onChange: function (selectedDates) {
+                        if (selectedDates.length == 2) {
                             let startTime = +selectedDates[0];
                             let endTime = +selectedDates[1];
-                            if(startTime == endTime) {
+                            if (startTime == endTime) {
                                 endTime += 86400000;
                             }
                             endTime = Math.min(Date.now(), endTime);
@@ -269,7 +269,7 @@
                 });
             }
             fp.open();
-        } else if(datecondition) {
+        } else if (datecondition) {
             // 固定日期范围选择
             let endTime = Date.now();
             let timeMap = {
@@ -291,22 +291,22 @@
 
     // 隐藏分页按钮
     function changePagenationBtn() {
-        if(date !== 'none') {
+        if (date !== 'none') {
             let pagenationBtnList = document.querySelectorAll('.vui_pagenation--btn-num');
-            if(pagenationBtnList.length > 0) {
-                for(let btn of pagenationBtnList) {
+            if (pagenationBtnList.length > 0) {
+                for (let btn of pagenationBtnList) {
                     btn.remove();
                 }
             }
             let pagenationText = document.querySelector('.vui_pagenation--extend');
-            if(pagenationText) {
+            if (pagenationText) {
                 pagenationText.remove();
             }
 
             let pagenationParent = document.querySelector('.vui_pagenation--btns');
-            if(pagenationParent) {
+            if (pagenationParent) {
                 let nextPagenation = pagenationParent.lastChild;
-                if(finished && actualPage === maxPage) {
+                if (finished && actualPage === maxPage) {
                     nextPagenation.className += ' vui_button--disabled';
                     nextPagenation.setAttribute('disabled', 'disabled')
                 } else {
@@ -319,7 +319,7 @@
 
     // 请求数据保存
     async function requestData(url, options) {
-        while(true) {
+        while (true) {
             const query = getQueryObject(url);
             query.page = requestPage;
             // 应该是浏览的偏移量，必须跟页码数量保持一致，不然会有重复数据
@@ -331,8 +331,8 @@
             let _responseJson = await originFetch(url, options).then(response => {
                 return response.json();
             });
-            if(_responseJson.data && _responseJson.data.result) {
-                if(_responseJson.data.result.length < pageSize) {
+            if (_responseJson.data && _responseJson.data.result) {
+                if (_responseJson.data.result.length < pageSize) {
                     finished = true;
                     maxPage = actualPage;
                 }
@@ -345,7 +345,7 @@
                 maxPage = actualPage;
             }
             requestPage++;
-            if(finished || result.length >= 21) {
+            if (finished || result.length >= 21) {
                 return;
             } else {
                 let time = Math.round(Math.random() * 400) + 600;
@@ -355,8 +355,8 @@
     }
 
     // 防止请求频繁，被封ip
-    function delay(n){
-        return new Promise(function(resolve){
+    function delay(n) {
+        return new Promise(function (resolve) {
             setTimeout(resolve, n);
         });
     }
@@ -373,8 +373,8 @@
             wt = Et.subKey;
         if (St && wt) {
             for (var xt = getMixinKey(St + wt), kt = Math.round(Date.now() / 1e3), Ht = Object.assign({}, st, {
-                    wts: kt
-                }), Wt = Object.keys(Ht).sort(), zt = [], Xt = /[!'\(\)*]/g, Qt = 0; Qt < Wt.length; Qt++) {
+                wts: kt
+            }), Wt = Object.keys(Ht).sort(), zt = [], Xt = /[!'\(\)*]/g, Qt = 0; Qt < Wt.length; Qt++) {
                 var Zt = Wt[Qt],
                     an = Ht[Zt];
                 an && typeof an == "string" && (an = an.replace(Xt, "")), an != null && zt.push("".concat(
@@ -415,8 +415,8 @@
     }
     function getMixinKey(st) {
         var dt = [46, 47, 18, 2, 53, 8, 23, 32, 15, 50, 10, 31, 58, 3, 45, 35, 27, 43, 5, 49, 33, 9, 42, 19, 29, 28, 14, 39,
-                12, 38, 41, 13, 37, 48, 7, 16, 24, 55, 40, 61, 26, 17, 0, 1, 60, 51, 30, 4, 22, 25, 54, 21, 56, 59, 6, 63,
-                57, 62, 11, 36, 20, 34, 44, 52],
+            12, 38, 41, 13, 37, 48, 7, 16, 24, 55, 40, 61, 26, 17, 0, 1, 60, 51, 30, 4, 22, 25, 54, 21, 56, 59, 6, 63,
+            57, 62, 11, 36, 20, 34, 44, 52],
             Et = [];
         return dt.forEach(function (St) {
             st.charAt(St) && Et.push(st.charAt(St))

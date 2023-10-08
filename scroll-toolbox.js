@@ -25,22 +25,22 @@ const icons = {
   stopRead: '<svg t="1663851470156" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="1152" width="32" height="32"><path d="M728.9 710.7v-1.2c0-40-32.5-72.5-72.5-72.5h-1.7l74.2 73.7zM666.4 747.2c-3.2 0.8-6.5 1.3-9.9 1.3-21.5 0-39-17.5-39-39 0-3.3 0.4-6.6 1.2-9.6L593 674.4c-5.8 10.4-9.1 22.4-9.1 35.1 0 40 32.5 72.5 72.5 72.5 12.9 0 25-3.4 35.6-9.3l-25.6-25.5z" fill="#9850FF" p-id="1153"></path><path d="M720.5 800.9c-20.4 6.8-42 10.6-64 10.9-72.9-1-140.5-40.1-177.9-102.3 18.6-31.1 44.7-56.3 75.3-74l-36.6-36.3c-37 23.9-67.9 57.1-89.2 97.5-4.3 7.7-4.3 17 0 24.6 44.6 85.2 132.1 138.9 228.3 140.1h0.2c36-0.4 70.8-8.1 102.7-22.2l-38.8-38.3zM884.9 697.6c-44.6-85.2-132.1-138.9-228.3-140.1h-0.2c-24.4 0.3-48.3 3.9-71.1 10.6l42 41.6c9.6-1.5 19.4-2.3 29.2-2.4 72.9 1 140.5 40.1 177.9 102.3-13.2 21.9-30.1 40.9-49.6 56.4l35.7 35.5c26-21.6 48.1-48.3 64.4-79.3 4.3-7.7 4.3-17 0-24.6zM787.707 854.424l-272.635-270.56 35.22-35.49 272.635 270.56zM713.2 443c0-17.1-13.1-31-29.2-31H321.4c-16.1 0-29.2 13.9-29.2 31s13.1 31 29.2 31H684c15.9 0 29-13.9 29.2-31zM321 529.9c-16.1 0-29.2 13.9-29.2 31s13.1 31 29.2 31h143.1c16 0 29.1-13.9 29.2-31 0-17.1-13.1-31-29.2-31H321zM684 284.5H321.4c-16.1 0-29.2 13.9-29.2 31s13.1 31 29.2 31H684c16 0 29.1-13.9 29.2-31 0-17.1-13.1-31-29.2-31z" fill="#9850FF" p-id="1154"></path><path d="M521.3 851.5H228.4s-0.1-0.1-0.1 0V170.6s0.1-0.1 0-0.1h566.9s0.1 0.1 0.1 0V527c0 16.6 13.4 30 30 30s30-13.4 30-30V170.5c0-33.1-26.9-60-60-60h-567c-33.1 0-60 26.9-60 60v681c0 33.1 26.9 60 60 60h293c16.6 0 30-13.4 30-30s-13.4-30-30-30z" fill="#9850FF" p-id="1155"></path></svg>'
 };
 
-(function() {
+(function () {
   /**
    * html
    */
   // toolbox
   function insertToolbox() {
     // 在iframe中
-    if(unsafeWindow.self != unsafeWindow.top) {
+    if (unsafeWindow.self != unsafeWindow.top) {
       return;
     }
     // 没有滚动条
-    if(getScrollValue('scrollHeight') == getScrollValue('clientHeight')) {
+    if (getScrollValue('scrollHeight') == getScrollValue('clientHeight')) {
       return;
     }
     const toolbox = document.querySelector('#userscript-scroll-toolbox');
-    if(toolbox) {
+    if (toolbox) {
       return;
     }
     const clientX = GM_getValue('clientX');
@@ -59,7 +59,7 @@ const icons = {
       const icon = document.createElement('div');
       icon.id = `tool-${ele}`;
       icon.className = 'tool-icon';
-      if(ele == 'read') {
+      if (ele == 'read') {
         icon.innerHTML = icons.autoRead;
       } else {
         icon.innerHTML = icons[ele];
@@ -70,7 +70,7 @@ const icons = {
     box.appendChild(fragment);
     document.body.appendChild(box);
   }
-  document.addEventListener('DOMContentLoaded', function() {
+  document.addEventListener('DOMContentLoaded', function () {
     // 数据加载
     setTimeout(() => {
       insertToolbox();
@@ -127,11 +127,11 @@ const icons = {
     GM_setValue('clientY', clientY);
   }
   function setToolboxPosition(element, clientX, clientY) {
-    if(clientX) {
+    if (clientX) {
       element.style.left = `${clientX}px`;
       element.style.right = 'unset';
     }
-    if(clientY) {
+    if (clientY) {
       element.style.top = `${clientY}px`;
       element.style.bottom = 'unset';
     }
@@ -157,14 +157,14 @@ const icons = {
   }
   let scrollRequestID;
   function read(event) {
-    if(scrollRequestID) {
+    if (scrollRequestID) {
       stopRead();
     } else {
       function scroll() {
         unsafeWindow.scrollBy({
           top: 1
         });
-        if(getScrollValue('scrollHeight') - getScrollValue('scrollTop') <= getScrollValue('clientHeight') + 6) {
+        if (getScrollValue('scrollHeight') - getScrollValue('scrollTop') <= getScrollValue('clientHeight') + 6) {
           stopRead();
         } else {
           scrollRequestID = unsafeWindow.requestAnimationFrame(scroll);
@@ -185,7 +185,7 @@ const icons = {
     return document.documentElement[key] || document.body[key];
   }
   // 监听视频全屏
-  document.addEventListener("fullscreenchange", function(event) {
+  document.addEventListener("fullscreenchange", function (event) {
     const element = document.fullscreenElement;
     const toolbox = document.querySelector('#userscript-scroll-toolbox');
     if (element !== null) {

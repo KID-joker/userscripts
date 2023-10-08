@@ -16,7 +16,7 @@
 // @license      MIT
 // ==/UserScript==
 
-(function() {
+(function () {
   const searchList = getSearchList();
   /**
    * html
@@ -29,10 +29,10 @@
       button.className = 'tool-btn';
       button.title = ele.name;
       button.dataset.id = ele.name;
-      if(parent) {
+      if (parent) {
         button.dataset.parent = parent;
       }
-      if(listen) {
+      if (listen) {
         button.addEventListener('mouseenter', focusFunc);
         button.addEventListener('mouseleave', blurFunc);
       }
@@ -40,7 +40,7 @@
       icon.className = 'tool-icon';
       icon.src = ele.icon;
       icon.dataset.id = ele.name;
-      if(parent) {
+      if (parent) {
         icon.dataset.parent = parent;
       }
       button.appendChild(icon);
@@ -50,7 +50,7 @@
   }
   function createComponent() {
     let box = document.querySelector('#userscript-search-toolbox');
-    if(box) {
+    if (box) {
       box.style.display = 'block';
       return box;
     }
@@ -130,16 +130,16 @@
   let selectText;
   let startX;
   document.addEventListener('keydown', hideElement);
-  document.addEventListener('mousedown', function(event) {
+  document.addEventListener('mousedown', function (event) {
     startX = event.clientX;
     hideElement(event);
   });
-  document.addEventListener('mouseup', function(event) {
-    if(event.button === 0) {
+  document.addEventListener('mouseup', function (event) {
+    if (event.button === 0) {
       setTimeout(() => {
         const selection = unsafeWindow.getSelection();
         selectText = selection.toString().trim();
-        if(selection && selection.focusNode && selection.focusNode.nodeType == 3 && !!selectText) {
+        if (selection && selection.focusNode && selection.focusNode.nodeType == 3 && !!selectText) {
           position = event.clientX < startX ? 'left' : 'right';
           insertComponent(selection.focusNode.parentElement);
         }
@@ -148,7 +148,7 @@
   })
   function hideElement(event) {
     const ele = document.querySelector('#userscript-search-toolbox');
-    if(ele && (!event || !event.path.includes(ele))) {
+    if (ele && (!event || !event.path.includes(ele))) {
       ele.style.display = 'none';
     }
   }
@@ -156,12 +156,12 @@
   function insertComponent(selectionElement) {
     const selectionDOMRect = selectionElement.getBoundingClientRect();
     const component = createComponent();
-    if(selectionDOMRect.top + unsafeWindow.scrollY + 572 > document.body.clientHeight) {
+    if (selectionDOMRect.top + unsafeWindow.scrollY + 572 > document.body.clientHeight) {
       component.style.top = `${document.body.clientHeight - 572}px`;
     } else {
       component.style.top = `${selectionDOMRect.top + unsafeWindow.scrollY}px`;
     }
-    if(position == 'left') {
+    if (position == 'left') {
       component.style.left = `${selectionDOMRect.left - 88}px`;
     } else {
       component.style.left = `${selectionDOMRect.right + 44}px`;
@@ -177,16 +177,16 @@
     const parent = event.target.dataset.parent;
     const id = event.target.dataset.id;
     let list = searchList;
-    if(parent) {
+    if (parent) {
       let parentEle = searchList.find(ele => ele.name == parent);
       list = parentEle.children;
     }
     const ele = list.find(ele => ele.name == id);
-    if(ele.func) {
+    if (ele.func) {
       ele.func(selectText);
       return;
     }
-    if(ele.link) {
+    if (ele.link) {
       unsafeWindow.open(ele.link.replace('{{%s}}', selectText), '_blank');
       return;
     }
@@ -194,7 +194,7 @@
   function focusFunc(event) {
     const id = event.target.dataset.id;
     const ele = searchList.find(ele => ele.name == id);
-    if(ele && ele.children) {
+    if (ele && ele.children) {
       insertChildComponent(id, ele.children);
     }
   }
@@ -314,7 +314,7 @@ function getSearchList() {
     {
       name: 'copy',
       icon: iconMap.copy,
-      func: function(text) {
+      func: function (text) {
         navigator.clipboard.writeText(text);
       }
     }
