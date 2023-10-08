@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bilibili Search Filter By Time
 // @namespace    https://github.com/KID-joker/userscript
-// @version      1.1.1
+// @version      1.1.3
 // @updateURL    https://github.com/KID-joker/userscript/blob/main/bilibili-search-filter-by-time.js
 // @downloadURL  https://github.com/KID-joker/userscript/blob/main/bilibili-search-filter-by-time.js
 // @supportURL   https://github.com/KID-joker/userscript/issues
@@ -85,6 +85,8 @@
     let result = [];
     // 日期过滤的页码
     let actualPage = 1;
+    // 显示数量
+    let actualPageSize = 21;
     // b站对应页面
     let requestPage = 1;
     // 数量
@@ -100,17 +102,17 @@
     const originFetch = fetch;
     unsafeWindow.fetch = async function (url, options) {
         // 只针对视频搜索接口
-        let params = options?.params;
+        let params = options && options.params;
         if (url.indexOf('x/web-interface/wbi/search/type') > -1 && params.search_type === 'video' && date !== 'none') {
             // 暂停上报
             const originReportObserver = unsafeWindow.reportObserver;
             unsafeWindow.reportObserver = null;
             actualPage = params.page;
             pageSize = params.page_size;
-            if (result.length < actualPage * pageSize) {
+            if (result.length < actualPage * actualPageSize) {
                 await requestData(url, options);
             }
-            let responseResult = result.slice((actualPage - 1) * pageSize, actualPage * pageSize);
+            let responseResult = result.slice((actualPage - 1) * actualPageSize, actualPage * actualPageSize);
             let response = new Response();
             response.json = function () {
                 return new Promise(resolve => {
@@ -345,7 +347,7 @@
                 maxPage = actualPage;
             }
             requestPage++;
-            if (finished || result.length >= 21) {
+            if (finished || result.length >= actualPage * actualPageSize) {
                 return;
             } else {
                 let time = Math.round(Math.random() * 400) + 600;
