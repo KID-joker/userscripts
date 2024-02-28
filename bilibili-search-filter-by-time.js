@@ -230,7 +230,7 @@
         		title: '5万以上'
         	}, {
         		name: '10w',
-        		title: '1万以上'
+        		title: '10万以上'
         	}]
         }
         list[selector].forEach(function (ele) {
