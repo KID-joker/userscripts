@@ -69,15 +69,15 @@
 		let playAmount = 'none';
 
     let dateRange = [];
-    function getDate() {
+    function getFromQuery() {
         let queryObj = getQueryObject();
         date = queryObj.date || 'none';
-        dateRange = queryObj.date_range || [];
+        dateRange = queryObj.date_range || []; // 填充默认值
         if (date !== 'none') {
             dateRange = dateRange.split('_');
         }
     }
-    getDate();
+    getFromQuery();
 
     // 返回json结果
     let responseJson = null;
@@ -103,7 +103,7 @@
     unsafeWindow.fetch = async function (url, options) {
         // 只针对视频搜索接口
         let params = options && options.params;
-        if (url.indexOf('x/web-interface/wbi/search/type') > -1 && params.search_type === 'video' && date !== 'none') {
+        if (url.indexOf('x/web-interface/wbi/search/type') > -1 && params.search_type === 'video' && (date !== 'none' || playAmount !== 'none')) {
             // 暂停上报
             const originReportObserver = unsafeWindow.reportObserver;
             unsafeWindow.reportObserver = null;
@@ -139,18 +139,18 @@
         router = app.config.globalProperties.$router;
         route = app.config.globalProperties.$route;
         if (route.name === 'video') {
-            insertComponent('date-search-conditions');
-						insertComponent('playAmount-search-conditions');
+        	insertComponent('date-search-conditions');
+        	insertComponent('playAmount-search-conditions');
         } else {
-            removeComponent();
+        	removeComponent();
         }
         router.afterEach(route => {
-            if (route.name === 'video') {
-                insertComponent('date-search-conditions');
-								insertComponent('playAmount-search-conditions');
-            } else {
-                removeComponent();
-            }
+        	if (route.name === 'video') {
+        		insertComponent('date-search-conditions');
+        		insertComponent('playAmount-search-conditions');
+        	} else {
+        		removeComponent();
+        	}
         })
         // const vnode = route.matched.find(ele => ele.name == 'video').instances.default._;
 
@@ -247,19 +247,32 @@
         if (dateCondition) {
             document.querySelector('.more-conditions').removeChild(dateCondition);
         }
+
+				const Condition2 = document.querySelector('#playAmount-search-conditions')
+        if (Condition2) {
+            document.querySelector('.more-conditions').removeChild(Condition2);
+        }
     }
     // 更新日期按钮状态
     function updateComponent() {
-        const dateCondition = document.querySelector('#date-search-conditions')
-        if (dateCondition) {
-            [...dateCondition.children].forEach(btn => {
-                if (btn.dataset.datecondition == date) {
-                    btn.classList.add("vui_button--active")
-                } else {
-                    btn.classList.remove("vui_button--active");
-                }
-            })
-        }
+    	['#date-search-conditions', '#playAmount-search-conditions'].forEach(selectorr => {
+    		const dateCondition = document.querySelector(selectorr)
+    		if (dateCondition) {
+    			[...dateCondition.children].forEach(btn => {
+    				let conditionActive;
+    				if (selectorr === '#date-search-conditions') {
+    					conditionActive = date;
+    				} else {
+    					conditionActive = playAmount;
+    				}
+    				if (btn.dataset.date_playAmount_condition == conditionActive) {
+    					btn.classList.add("vui_button--active")
+    				} else {
+    					btn.classList.remove("vui_button--active");
+    				}
+    			})
+    		}
+    	});
     }
 
     function routerGo(query) {
@@ -268,7 +281,7 @@
             query
         });
         setTimeout(() => {
-            getDate();
+            getFromQuery();
             updateComponent();
             searchBtn.click();
         });
@@ -276,10 +289,10 @@
 
     // 日期过滤点击事件
     function clickDateCondition(evt) {
-        let datecondition = evt.target.dataset.datecondition;
+        let datecondition = evt.target.dataset.date_playAmount_condition;
         if (datecondition === 'none') {
             // 时间不限
-            let { date, date_range, ...query } = route.query;
+            let { date, date_range, ...query } = route.query; // 删除date和date_range属性
             routerGo(query);
         } else if (datecondition === 'custom') {
             // 自定义日期范围，弹出日期选择弹窗
@@ -316,21 +329,24 @@
     }
 		// 播放量过滤点击事件
 		function clickPlayAmountCondition(evt) {
-			let datecondition = evt.target.dataset.datecondition;
-			if (datecondition === 'none') {
+			let playAmountcondition = evt.target.dataset.date_playAmount_condition;
+			if (playAmountcondition === 'none') {
 					// 时间不限
-					let { date, date_range, ...query } = route.query;
+					let { playAmount, play_Amount, ...query } = route.query;
 					routerGo(query);
-			} else if (datecondition) {
+			} else if (playAmountcondition) {
 					// 固定日期范围选择
-					let endTime = Date.now();
-					let timeMap = {
-							'day': 86400000,
-							'week': 604800000,
-							'month': 2592000000,
-							'year': 31536000000
+					let Map = {
+							'1k': 1000,
+							'5k': 5000,
+							'1w': 10000,
+							'5w': 50000
 					}
-					filterByDate(datecondition, endTime - timeMap[datecondition], endTime);
+					// filterByDate(datecondition, endTime - timeMap[datecondition], endTime);
+					let { page, o, ...query } = route.query;
+					query.playAmount = playAmountcondition;
+					query.play_Amount = Map[playAmountcondition]
+					routerGo(query);
 			}
 	}
 
@@ -343,7 +359,7 @@
 
     // 隐藏分页按钮
     function changePagenationBtn() {
-        if (date !== 'none') {
+        if (date !== 'none' || playAmount !== 'none') {
             let pagenationBtnList = document.querySelectorAll('.vui_pagenation--btn-num');
             if (pagenationBtnList.length > 0) {
                 for (let btn of pagenationBtnList) {
@@ -383,6 +399,7 @@
             let _responseJson = await originFetch(url, options).then(response => {
                 return response.json();
             });
+						debugger
             if (_responseJson.data && _responseJson.data.result) {
                 if (_responseJson.data.result.length < pageSize) {
                     finished = true;
