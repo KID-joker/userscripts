@@ -68,14 +68,19 @@
     let date = 'none';
 		let playAmount = 'none';
 
-    let dateRange = [];
+    let dateRange = ['946656000','1893427200']; // 2000年到2030年
+		let play_Amount = 10;
     function getFromQuery() {
-        let queryObj = getQueryObject();
-        date = queryObj.date || 'none';
-        dateRange = queryObj.date_range || []; // 填充默认值
-        if (date !== 'none') {
-            dateRange = dateRange.split('_');
-        }
+    	debugger
+    	let queryObj = getQueryObject();
+    	date = queryObj.date || 'none';
+    	dateRange = queryObj.date_range || ['946656000','1893427200']; // 填充默认值 1708491642_1709096442
+    	if (date !== 'none') {
+    		dateRange = dateRange.split('_');
+    	}
+
+    	playAmount = queryObj.playAmount || 'none';
+    	play_Amount = queryObj.play_Amount || 10;
     }
     getFromQuery();
 
@@ -407,6 +412,7 @@
                 }
                 responseJson = _responseJson;
                 let list = responseJson.data.result.filter(ele => ele.pubdate >= dateRange[0] && ele.pubdate <= dateRange[1]);
+								list = list.filter(ele => ele.play >= play_Amount);
                 result = result.concat(list);
             } else {
                 // 没有更多数据了
