@@ -228,6 +228,9 @@
         	}, {
         		name: '5w',
         		title: '5万以上'
+        	}, {
+        		name: '10w',
+        		title: '1万以上'
         	}]
         }
         list[selector].forEach(function (ele) {
@@ -345,7 +348,8 @@
 							'1k': 1000,
 							'5k': 5000,
 							'1w': 10000,
-							'5w': 50000
+							'5w': 50000,
+							'10w': 100000
 					}
 					// filterByDate(datecondition, endTime - timeMap[datecondition], endTime);
 					let { page, o, ...query } = route.query;
