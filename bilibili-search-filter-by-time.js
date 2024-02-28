@@ -71,7 +71,7 @@
     let dateRange = ['946656000','1893427200']; // 2000年到2030年
 		let play_Amount = 10;
     function getFromQuery() {
-    	debugger
+    	// debugger
     	let queryObj = getQueryObject();
     	date = queryObj.date || 'none';
     	dateRange = queryObj.date_range || ['946656000','1893427200']; // 填充默认值 1708491642_1709096442
@@ -408,7 +408,7 @@
             let _responseJson = await originFetch(url, options).then(response => {
                 return response.json();
             });
-						debugger
+		// debugger
             if (_responseJson.data && _responseJson.data.result) {
                 if (_responseJson.data.result.length < pageSize) {
                     finished = true;
