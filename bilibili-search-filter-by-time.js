@@ -2,8 +2,6 @@
 // @name         Bilibili Search Filter By Time
 // @namespace    https://github.com/KID-joker/userscript
 // @version      1.1.3
-// @updateURL    https://github.com/KID-joker/userscript/blob/main/bilibili-search-filter-by-time.js
-// @downloadURL  https://github.com/KID-joker/userscript/blob/main/bilibili-search-filter-by-time.js
 // @supportURL   https://github.com/KID-joker/userscript/issues
 // @description  add time filter to bilibili search results
 // @author       KID-joker
@@ -68,6 +66,8 @@
         return obj
     }
     let date = 'none';
+		let playAmount = 'none';
+
     let dateRange = [];
     function getDate() {
         let queryObj = getQueryObject();
@@ -139,13 +139,15 @@
         router = app.config.globalProperties.$router;
         route = app.config.globalProperties.$route;
         if (route.name === 'video') {
-            insertComponent();
+            insertComponent('date-search-conditions');
+						insertComponent('playAmount-search-conditions');
         } else {
             removeComponent();
         }
         router.afterEach(route => {
             if (route.name === 'video') {
-                insertComponent();
+                insertComponent('date-search-conditions');
+								insertComponent('playAmount-search-conditions');
             } else {
                 removeComponent();
             }
@@ -169,43 +171,72 @@
     })
 
     // 插入日期过滤组件
-    function insertComponent() {
-        if (document.querySelector('#date-search-conditions')) {
+    function insertComponent(selector) {
+        if (document.querySelector('#'+selector)) {
             return;
         }
         let element = document.createElement('div');
-        element.id = 'date-search-conditions';
+        element.id = selector;
         element.className = 'search-condition-row';
-        element.addEventListener('click', clickDateCondition);
+
+				let clickCondition;
+				if (selector === 'date-search-conditions') {
+					clickCondition = clickDateCondition
+				} else {
+					clickCondition = clickPlayAmountCondition
+				}
+
+        element.addEventListener('click', clickCondition);
         let fragment = document.createDocumentFragment();
-        let list = [{
-            name: 'none',
-            title: '时间不限'
-        }, {
-            name: 'day',
-            title: '过去1天内'
-        }, {
-            name: 'week',
-            title: '过去1周内'
-        }, {
-            name: 'month',
-            title: '过去1月内'
-        }, {
-            name: 'year',
-            title: '过去1年内'
-        }, {
-            name: 'custom',
-            title: '自定日期范围'
-        }]
-        list.forEach(function (ele) {
-            let button = document.createElement('button');
-            button.textContent = ele.title;
-            button.className = 'vui_button vui_button--tab mt_sm mr_sm';
-            button.dataset.datecondition = ele.name;
-            if (ele.name === date) {
-                button.className += ' vui_button--active';
-            }
-            fragment.appendChild(button);
+        let list = {
+        	'date-search-conditions': [{
+        		name: 'none',
+        		title: '时间不限'
+        	}, {
+        		name: 'day',
+        		title: '过去1天内'
+        	}, {
+        		name: 'week',
+        		title: '过去1周内'
+        	}, {
+        		name: 'month',
+        		title: '过去1月内'
+        	}, {
+        		name: 'year',
+        		title: '过去1年内'
+        	}, {
+        		name: 'custom',
+        		title: '自定日期范围'
+        	}],
+        	'playAmount-search-conditions': [{
+        		name: 'none',
+        		title: '播放量不限'
+        	}, {
+        		name: '1k',
+        		title: '1千以上'
+        	}, {
+        		name: '5k',
+        		title: '5千以上'
+        	}, {
+        		name: '1w',
+        		title: '1万以上'
+        	}, {
+        		name: '5w',
+        		title: '5万以上'
+        	}]
+        }
+        list[selector].forEach(function (ele) {
+        	let button = document.createElement('button');
+        	button.textContent = ele.title;
+        	button.className = 'vui_button vui_button--tab mt_sm mr_sm';
+        	button.dataset.date_playAmount_condition = ele.name;
+        	if (selector === 'date-search-conditions' && ele.name === date) {
+        		button.className += ' vui_button--active';
+        	}
+        	if (selector === 'playAmount-search-conditions' && ele.name === playAmount) {
+        		button.className += ' vui_button--active';
+        	}
+        	fragment.appendChild(button);
         });
         element.appendChild(fragment);
         document.querySelector('.more-conditions').appendChild(element);
@@ -283,6 +314,25 @@
             filterByDate(datecondition, endTime - timeMap[datecondition], endTime);
         }
     }
+		// 播放量过滤点击事件
+		function clickPlayAmountCondition(evt) {
+			let datecondition = evt.target.dataset.datecondition;
+			if (datecondition === 'none') {
+					// 时间不限
+					let { date, date_range, ...query } = route.query;
+					routerGo(query);
+			} else if (datecondition) {
+					// 固定日期范围选择
+					let endTime = Date.now();
+					let timeMap = {
+							'day': 86400000,
+							'week': 604800000,
+							'month': 2592000000,
+							'year': 31536000000
+					}
+					filterByDate(datecondition, endTime - timeMap[datecondition], endTime);
+			}
+	}
 
     function filterByDate(datecondition, startTime, endTime) {
         let { page, o, ...query } = route.query;
