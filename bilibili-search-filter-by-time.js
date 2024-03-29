@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bilibili Search Filter By Time
 // @namespace    https://github.com/KID-joker/userscript
-// @version      1.1.3
+// @version      1.2.0
 // @updateURL    https://github.com/KID-joker/userscript/blob/main/bilibili-search-filter-by-time.js
 // @downloadURL  https://github.com/KID-joker/userscript/blob/main/bilibili-search-filter-by-time.js
 // @supportURL   https://github.com/KID-joker/userscript/issues
@@ -76,8 +76,9 @@
         if (date !== 'none') {
             dateRange = dateRange.split('_');
         }
+
+        updateComponent();
     }
-    getDate();
 
     // 返回json结果
     let responseJson = null;
@@ -87,6 +88,8 @@
     let actualPage = 1;
     // 显示数量
     let actualPageSize = 21;
+    // 已经显示的数量
+    let showSize = 0;
     // b站对应页面
     let requestPage = 1;
     // 数量
@@ -97,10 +100,14 @@
     let maxPage = 1;
     // 自定义日期选择弹窗
     let fp = null;
+    // b站请求超时限制
+    const timeout = 10000;
+    let startFetch = 0;
 
     // 重写fetch，拦截fetch请求
     const originFetch = fetch;
     unsafeWindow.fetch = async function (url, options) {
+        startFetch = Date.now();
         // 只针对视频搜索接口
         let params = options && options.params;
         if (url.indexOf('x/web-interface/wbi/search/type') > -1 && params.search_type === 'video' && date !== 'none') {
@@ -112,7 +119,15 @@
             if (result.length < actualPage * actualPageSize) {
                 await requestData(url, options);
             }
-            let responseResult = result.slice((actualPage - 1) * actualPageSize, actualPage * actualPageSize);
+            let responseResult = [];
+            // 保证有数据显示
+            do {
+                responseResult = result.slice(showSize, showSize + actualPageSize);
+                if(responseResult.length == 0) {
+                    showSize = Math.max(0, showSize - actualPageSize);
+                }
+            } while(responseResult.length == 0 && result.length > 0);
+            showSize += responseResult.length;
             let response = new Response();
             response.json = function () {
                 return new Promise(resolve => {
@@ -122,8 +137,9 @@
                 })
             }
             setTimeout(() => {
+                hidePagenationBtn();
                 changePagenationBtn();
-            }, 0);
+            }, 200);
             unsafeWindow.reportObserver = originReportObserver;
             return response;
         } else {
@@ -132,9 +148,8 @@
     }
 
     // 获取vue实例、vue-router实例
-    let app = null, router = null, route = null, searchBtn = null;
+    let app = null, router = null, route = null;
     document.addEventListener('DOMContentLoaded', function () {
-        searchBtn = document.querySelector('.search-button');
         app = document.querySelector('#i_cecream').__vue_app__;
         router = app.config.globalProperties.$router;
         route = app.config.globalProperties.$route;
@@ -160,11 +175,19 @@
                 route = toRoute;
                 result = [];
                 actualPage = 1;
+                showSize = 0;
                 requestPage = 1;
                 pageSize = 0;
                 finished = false;
                 return routerReplace.call(this, toRoute);
             }
+        }
+
+        // 获取时间筛选
+        getDate();
+        if (date !== 'none') {
+            let searchBtn = document.querySelector('.search-button');
+            searchBtn.click();
         }
     })
 
@@ -199,12 +222,10 @@
         }]
         list.forEach(function (ele) {
             let button = document.createElement('button');
+            button.id = `date-condition-${ele.name}`;
             button.textContent = ele.title;
             button.className = 'vui_button vui_button--tab mt_sm mr_sm';
             button.dataset.datecondition = ele.name;
-            if (ele.name === date) {
-                button.className += ' vui_button--active';
-            }
             fragment.appendChild(button);
         });
         element.appendChild(fragment);
@@ -229,6 +250,15 @@
                 }
             })
         }
+
+        const customBtn = document.querySelector('#date-condition-custom');
+        if(customBtn) {
+            if(date == 'custom') {
+                customBtn.textContent = `${formatTime(dateRange[0])}至${formatTime(dateRange[1])}`;
+            } else {
+                customBtn.textContent = '自定日期范围';
+            }
+        }
     }
 
     function routerGo(query) {
@@ -238,9 +268,19 @@
         });
         setTimeout(() => {
             getDate();
-            updateComponent();
-            searchBtn.click();
-        });
+
+            let firstPagenationBtn = document.querySelector('.vui_pagenation--btn-num');
+            if(firstPagenationBtn) {
+                showSize = 0;
+                // 当前为第一页，点击不生效
+                if(firstPagenationBtn.classList.contains("vui_button--active")) {
+                    let searchBtn = document.querySelector('.search-button');
+                    searchBtn.click();
+                } else {
+                    firstPagenationBtn.click();
+                }
+            }
+        }, 0);
     }
 
     // 日期过滤点击事件
@@ -292,29 +332,31 @@
     }
 
     // 隐藏分页按钮
-    function changePagenationBtn() {
+    function hidePagenationBtn() {
         if (date !== 'none') {
             let pagenationBtnList = document.querySelectorAll('.vui_pagenation--btn-num');
             if (pagenationBtnList.length > 0) {
                 for (let btn of pagenationBtnList) {
-                    btn.remove();
+                    btn.style.display = 'none';
                 }
             }
             let pagenationText = document.querySelector('.vui_pagenation--extend');
             if (pagenationText) {
-                pagenationText.remove();
+                pagenationText.style.display = 'none';
             }
-
-            let pagenationParent = document.querySelector('.vui_pagenation--btns');
-            if (pagenationParent) {
-                let nextPagenation = pagenationParent.lastChild;
-                if (finished && actualPage === maxPage) {
-                    nextPagenation.className += ' vui_button--disabled';
-                    nextPagenation.setAttribute('disabled', 'disabled')
-                } else {
-                    nextPagenation.className = nextPagenation.className.replace(' vui_button--disabled', '');
-                    nextPagenation.removeAttribute('disabled');
-                }
+        }
+    }
+    // 修改下一页按钮状态
+    function changePagenationBtn() {
+        let pagenationParent = document.querySelector('.vui_pagenation--btns');
+        if (pagenationParent) {
+            let nextPagenation = pagenationParent.lastChild;
+            if (finished && actualPage === maxPage) {
+                nextPagenation.className += ' vui_button--disabled';
+                nextPagenation.setAttribute('disabled', 'disabled')
+            } else {
+                nextPagenation.className = nextPagenation.className.replace(' vui_button--disabled', '');
+                nextPagenation.removeAttribute('disabled');
             }
         }
     }
@@ -332,7 +374,14 @@
             url = `${urlObj.origin + urlObj.pathname}?${new URLSearchParams(query)}`;
             let _responseJson = await originFetch(url, options).then(response => {
                 return response.json();
+            }).catch(err => {
+                return {
+                    error: true
+                }
             });
+            if(_responseJson.error) {
+                return;
+            }
             if (_responseJson.data && _responseJson.data.result) {
                 if (_responseJson.data.result.length < pageSize) {
                     finished = true;
@@ -342,12 +391,16 @@
                 let list = responseJson.data.result.filter(ele => ele.pubdate >= dateRange[0] && ele.pubdate <= dateRange[1]);
                 result = result.concat(list);
             } else {
-                // 没有更多数据了
                 finished = true;
                 maxPage = actualPage;
             }
             requestPage++;
-            if (finished || result.length >= actualPage * actualPageSize) {
+            /**
+             * finished 没有更多数据了
+             * result.length >= actualPage * actualPageSize 满足显示个数
+             * (Date.now() - startFetch) > 0.8 * timeout 避免超时
+             */
+            if (finished || result.length >= actualPage * actualPageSize  || (Date.now() - startFetch) > 0.8 * timeout) {
                 return;
             } else {
                 let time = Math.round(Math.random() * 400) + 600;
@@ -361,6 +414,11 @@
         return new Promise(function (resolve) {
             setTimeout(resolve, n);
         });
+    }
+
+    function formatTime(timestamp) {
+        let date = new Date(timestamp * 1000);
+        return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`
     }
 
     // 请求加密
